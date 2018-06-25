@@ -2,6 +2,7 @@ from Hotspot import Hotspot
 import math
 from Point import Point
 import datetime
+import sys
 
 
 class Greedy:
@@ -31,7 +32,8 @@ class Greedy:
         self.mc_charging_energy_consumption = 0
         # 充电惩罚值
         self.charging_penalty = -1
-
+        # 记录一次循环获得的reward
+        self.current_reward = 0
         self.out_put_file = 'C:/E/dataSet/2018-06-25Greedy/greedy.txt'
 
     def set_sensors_mobile_charger(self):
@@ -102,9 +104,9 @@ class Greedy:
     # 计算在hotspot_num 等待 stay_time 时间，碰到sensor_num 的概率
     # current_slot 当前时间段，计算在当前时间段总共sensor来了几次
     def probability_T(self, current_slot, staying_time, sensor_num, hotspot_num):
-        t = 5 / 60
-        start_seconds = (current_slot - 8) * 3600
-        end_seconds = start_seconds + 3600
+        t = 5 / 20
+        start_seconds = (current_slot - 1) * 1200
+        end_seconds = start_seconds + 1200
         hotspot = self.find_hotspot_by_num(hotspot_num)
 
         # sensor 整个时间段到达 hotpsot 的次数
@@ -116,7 +118,7 @@ class Greedy:
                 point = Point(float(line[0]), float(line[1]), line[2])
                 point_time = self.str_to_seconds(point.get_time())
 
-                if start_seconds <= point_time <= end_seconds and point.get_distance_between_point_and_hotspot(hotspot):
+                if start_seconds <= point_time <= end_seconds and point.get_distance_between_point_and_hotspot(hotspot) < 60:
                     arrived_times += 1
         return 1 - (math.pow(arrived_times * staying_time * t, 0) * (math.exp(-arrived_times * staying_time * t))) / 1
 
@@ -131,6 +133,9 @@ class Greedy:
         with open(self.out_put_file, 'a') as res:
             res.write('程序开始时间       ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n')
         while self.get_evn_time() < self.one_episode_time and self.sensors_mobile_charger['MC'][0] > 0:
+            # 这次循环获得的reward，初始化为0，因为循环结束之前的最后一次执行结果不能算在最后结果里
+            # 所有要减去最后一次获得的reward
+            self.current_reward = 0
             with open(self.out_put_file, 'a') as res:
                 res.write('新一轮循环开始时间        ' + str(self.seconds_to_time_str(self.get_evn_time())) + '       ' + str(self.get_evn_time()) + '\n')
             # 判断环境中的sensor 是否有死掉的
@@ -149,6 +154,7 @@ class Greedy:
                 if (sensor_reserved_energy < 0) and (value[3] is True):
                     value[3] = False
                     self.reward += self.charging_penalty
+                    self.current_reward += self.charging_penalty
                     with open(self.out_put_file, 'a') as res:
                         res.write('sensor       ' + key + '         is dead' + '\n')
 
@@ -164,7 +170,7 @@ class Greedy:
                 # 在当前时间段选择带来最大reward 的action
                 # max_chose_reward 和 max_chose_action 暂存最大的reward 和 对应的 action
                 print('choosing action ...........')
-                max_chose_reward = 0
+                max_chose_reward = -sys.maxsize - 1
                 max_chose_action = None
                 for line in f:
                     print('testing every action ............')
@@ -208,7 +214,7 @@ class Greedy:
                                     rl = sensor_reserved_energy / sensor_consumption_ratio
                                     # 如果剩余寿命大于两个小时
                                     if rl >= 2 * 3600:
-                                        break
+                                        chose_reward += 0
                                     # 如果剩余寿命在0 到 两个小时
                                     elif 0 < rl < 2 * 3600:
                                         # 加上得到的奖励,需要先将 rl 的单位先转化成小时
@@ -225,14 +231,13 @@ class Greedy:
                         max_chose_action = chose_action
                 # 执行max_chose_action
                 self.initial_is_charged()
-                if max_chose_action is None:
-                    max_chose_action = str(self.current_hotspot.get_num()) + ',1'
-                    with open(self.out_put_file, 'a') as res:
-                        res.write('原地待五分钟  ')
+                # if max_chose_action is None:
+                #     max_chose_action = str(self.current_hotspot.get_num()) + ',1'
+                #     with open(self.out_put_file, 'a') as res:
+                #         res.write('原地待五分钟  ')
                 print('max_chose_action    ', max_chose_action)
                 with open(self.out_put_file, 'a') as res:
-                    res.write(str(self.seconds_to_time_str(self.get_evn_time())) +
-                              '        ' + max_chose_action + '\n')
+                    res.write(str(self.seconds_to_time_str(self.get_evn_time())) + '        ' + max_chose_action + '\n')
 
                 next_hotsopot_staying_time = max_chose_action.split(',')
                 next_hotspot = self.find_hotspot_by_num(int(next_hotsopot_staying_time[0]))
@@ -253,6 +258,7 @@ class Greedy:
                 # 将action 添加到 self.CS
                 self.CS.append(max_chose_action)
                 # 获得所有的sensor 轨迹点
+
                 for i in range(17):
                     sensor_path = 'sensor数据五秒/' + str(i) + '.txt'
                     with open(sensor_path) as sensor_file:
@@ -282,7 +288,8 @@ class Greedy:
                                 rl = sensor_reserved_energy / sensor_consumption_ratio
                                 # 如果剩余寿命大于两个小时
                                 if rl >= 2 * 3600:
-                                    break
+                                    self.reward += 0
+                                    self.current_reward += 0
                                 # 如果剩余寿命在0 到 两个小时
                                 elif 0 < rl < 2 * 3600:
                                     # mc 给该sensor充电， 充电后更新剩余能量
@@ -302,11 +309,13 @@ class Greedy:
                                         res.write('charging sensor  ' + str(i) + '      the time is       ' + self.seconds_to_time_str(sensor[2]) + '\n')
                                         res.write('reward:  ' + str(math.exp(-rl)) + '\n')
                                     self.reward += math.exp(-rl)
+                                    self.current_reward += math.exp(-rl)
                                 else:
                                     if sensor[3] is True:
                                         with open(self.out_put_file, 'a') as res:
                                             res.write(str(i) + 'sensor 死掉了' + '\n')
                                         self.reward += self.charging_penalty
+                                        self.current_reward += self.charging_penalty
                                         sensor[3] = False
 
         with open(self.out_put_file, 'a') as res:
@@ -314,7 +323,7 @@ class Greedy:
             res.write('mc 移动消耗的能量           ' + str(self.mc_move_energy_consumption) + '\n')
             res.write('mc 给sensor充电消耗的能量           ' + str(self.mc_charging_energy_consumption) + '\n')
             res.write('mc 剩余能量           ' + str(self.sensors_mobile_charger['MC'][0]) + '\n')
-            res.write('所获得的奖励       ' + str(self.reward) + '\n')
+            res.write('所获得的奖励       ' + str(self.reward - self.current_reward) + '\n')
 
 if __name__ == '__main__':
     greedy = Greedy()
