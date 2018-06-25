@@ -34,7 +34,7 @@ class Greedy:
         self.charging_penalty = -1
         # 记录一次循环获得的reward
         self.current_reward = 0
-        self.out_put_file = 'C:/E/dataSet/2018-06-25Greedy/greedy.txt'
+        self.out_put_file = 'greedy result.txt'
 
     def set_sensors_mobile_charger(self):
         # [0.7 * 6 * 1000, 0.6, 0, True]  依次代表：上一次充电后的剩余能量，能量消耗的速率，上一次充电的时间，
@@ -57,7 +57,7 @@ class Greedy:
         self.sensors_mobile_charger['14'] = [0.3 * 6 * 1000, 0.2, 0, True, False]
         self.sensors_mobile_charger['15'] = [0.9 * 6 * 1000, 0.6, 0, True, False]
         self.sensors_mobile_charger['16'] = [0.8 * 6 * 1000, 0.4, 0, True, False]
-        self.sensors_mobile_charger['MC'] = [1000 * 1000, 50]
+        self.sensors_mobile_charger['MC'] = [2000 * 1000, 50]
 
     def set_hotspots(self):
         # 这是编号为0 的hotspot，也就是base_stattion,位于整个充电范围中心
@@ -164,7 +164,7 @@ class Greedy:
             current_slot = int(self.get_evn_time() / 1200) + 1
             print('current_slot ', current_slot)
             print('residual energy of mc', self.sensors_mobile_charger['MC'][0])
-            path = '20minutes/' + str(current_slot) + '.txt'
+            path = '20minutes(greedy)/' + str(current_slot) + '.txt'
 
             with open(path) as f:
                 # 在当前时间段选择带来最大reward 的action
@@ -231,10 +231,6 @@ class Greedy:
                         max_chose_action = chose_action
                 # 执行max_chose_action
                 self.initial_is_charged()
-                # if max_chose_action is None:
-                #     max_chose_action = str(self.current_hotspot.get_num()) + ',1'
-                #     with open(self.out_put_file, 'a') as res:
-                #         res.write('原地待五分钟  ')
                 print('max_chose_action    ', max_chose_action)
                 with open(self.out_put_file, 'a') as res:
                     res.write(str(self.seconds_to_time_str(self.get_evn_time())) + '        ' + max_chose_action + '\n')
