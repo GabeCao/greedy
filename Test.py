@@ -1,9 +1,10 @@
-max_reward = 0
+import sys
+max_reward = -sys.maxsize - 1
 max_line = None
-with open('reward.txt', 'r') as f:
+with open('C:/Users/lv/Desktop/reward.txt', 'r') as f:
     for line in f:
         reward = float(line.split(',')[1])
-        if reward > max_reward:
+        if max_reward < reward:
             max_reward = reward
             max_line = line
 
