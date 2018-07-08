@@ -37,7 +37,9 @@ class Greedy:
         self.current_mc_move_energy_consumption = 0
         self.current_mc_charging_energy_consumption = 0
         # 输出文件的位置
-        self.out_put_file = 'C:/Users/lv/Desktop/res(-100).txt'
+        self.out_put_file = 'C:/Users/lv/Desktop/res(-100)2.txt'
+        # 剩余寿命
+        self.rl = 0
 
     def set_sensors_mobile_charger(self):
         # [0.7 * 6 * 1000, 0.6, 0, True]  依次代表：上一次充电后的剩余能量，能量消耗的速率，上一次充电的时间，
