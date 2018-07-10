@@ -37,31 +37,29 @@ class Greedy:
         self.current_mc_move_energy_consumption = 0
         self.current_mc_charging_energy_consumption = 0
         # 输出文件的位置
-        self.out_put_file = 'C:/Users/lv/Desktop/res(-100)2.txt'
-        # 剩余寿命
-        self.rl = 0
+        self.out_put_file = 'C:/Users/lv/Desktop/res(-100+0.1)_iter2.txt'
 
     def set_sensors_mobile_charger(self):
         # [0.7 * 6 * 1000, 0.6, 0, True]  依次代表：上一次充电后的剩余能量，能量消耗的速率，上一次充电的时间，
         # 是否已经死掉(计算reward的惩罚值时候使用，避免将一个sensor计算死掉了多次)，
         # 最后一个标志位，表示senor在该hotpot，还没有被充过电，如果已经充过了为True，避免被多次充电
         self.sensors_mobile_charger['0'] = [0.7 * 6 * 1000, 0.5, 0, True, False]
-        self.sensors_mobile_charger['1'] = [0.3 * 6 * 1000, 0.3, 0, True, False]
+        self.sensors_mobile_charger['1'] = [0.3 * 6 * 1000, 0.4, 0, True, False]
         self.sensors_mobile_charger['2'] = [0.9 * 6 * 1000, 0.5, 0, True, False]
-        self.sensors_mobile_charger['3'] = [0.5 * 6 * 1000, 0.3, 0, True, False]
-        self.sensors_mobile_charger['4'] = [0.2 * 6 * 1000, 0.2, 0, True, False]
+        self.sensors_mobile_charger['3'] = [0.5 * 6 * 1000, 0.4, 0, True, False]
+        self.sensors_mobile_charger['4'] = [0.2 * 6 * 1000, 0.3, 0, True, False]
         self.sensors_mobile_charger['5'] = [0.4 * 6 * 1000, 0.3, 0, True, False]
         self.sensors_mobile_charger['6'] = [1 * 6 * 1000, 0.6, 0, True, False]
         self.sensors_mobile_charger['7'] = [0.3 * 6 * 1000, 0.5, 0, True, False]
-        self.sensors_mobile_charger['8'] = [1 * 6 * 1000, 0.3, 0, True, False]
-        self.sensors_mobile_charger['9'] = [0.9 * 6 * 1000, 0.2, 0, True, False]
-        self.sensors_mobile_charger['10'] = [0.8 * 6 * 1000, 0.2, 0, True, False]
-        self.sensors_mobile_charger['11'] = [0.5 * 6 * 1000, 0.4, 0, True, False]
-        self.sensors_mobile_charger['12'] = [0.4 * 6 * 1000, 0.2, 0, True, False]
-        self.sensors_mobile_charger['13'] = [0.6 * 6 * 1000, 0.2, 0, True, False]
-        self.sensors_mobile_charger['14'] = [0.3 * 6 * 1000, 0.2, 0, True, False]
+        self.sensors_mobile_charger['8'] = [1 * 6 * 1000, 0.4, 0, True, False]
+        self.sensors_mobile_charger['9'] = [0.9 * 6 * 1000, 0.3, 0, True, False]
+        self.sensors_mobile_charger['10'] = [0.8 * 6 * 1000, 0.3, 0, True, False]
+        self.sensors_mobile_charger['11'] = [0.5 * 6 * 1000, 0.5, 0, True, False]
+        self.sensors_mobile_charger['12'] = [0.4 * 6 * 1000, 0.3, 0, True, False]
+        self.sensors_mobile_charger['13'] = [0.6 * 6 * 1000, 0.3, 0, True, False]
+        self.sensors_mobile_charger['14'] = [0.3 * 6 * 1000, 0.3, 0, True, False]
         self.sensors_mobile_charger['15'] = [0.9 * 6 * 1000, 0.6, 0, True, False]
-        self.sensors_mobile_charger['16'] = [0.8 * 6 * 1000, 0.4, 0, True, False]
+        self.sensors_mobile_charger['16'] = [0.8 * 6 * 1000, 0.5, 0, True, False]
         self.sensors_mobile_charger['MC'] = [1000 * 1000, 50]
 
     def set_hotspots(self):
@@ -105,6 +103,21 @@ class Greedy:
             total_t += staying_time
         #  CS中的时间加上移动的时间得到总共当前环境的时间
         return total_t * 5 * 60 + self.move_time
+
+    # 得到sensor的剩余能量信息(单位小时)，需要输出到第4 个文件
+    def get_sensors_residual_energy(self):
+        res = {}
+        average = 0
+        present_time = self.get_evn_time()
+        for key, value in self.sensors_mobile_charger.items():
+            if key != 'MC':
+                rl = ((value[0] - value[1] * (present_time - value[2])) / value[1]) / 3600
+                if rl <= 0:
+                    rl = 0
+                res[key] = rl
+                average += res[key]
+        res['average'] = average / 17
+        return res
 
     # 计算在hotspot_num 等待 stay_time 时间，碰到sensor_num 的概率
     def probability_T(self, current_slot, staying_time, sensor_num, hotspot_num):
@@ -151,7 +164,7 @@ class Greedy:
             current_slot = int(self.get_evn_time() / 3600) + 1
             print('current_slot ', current_slot)
             print('residual energy of mc', self.sensors_mobile_charger['MC'][0])
-            path = '1hour/' + str(current_slot) + '.txt'
+            path = '1hour_iter/' + str(current_slot) + '.txt'
             with open(path) as f:
                 # 在当前时间段选择带来最大reward 的action
                 # max_chose_reward 和 max_chose_action 暂存最大的reward 和 对应的 action
@@ -205,7 +218,9 @@ class Greedy:
                                     elif 0 < rl < 2 * 3600:
                                         # 加上得到的奖励,需要先将 rl 的单位先转化成小时
                                         rl = rl / 3600
-                                        chose_reward += self.probability_T(current_slot, max_staying_time, str(i), hotspot.get_num()) \
+                                        # 当前时刻所属的时间段
+                                        current_slot_arrived = int(start_seconds / 3600) + 1
+                                        chose_reward += self.probability_T(current_slot_arrived, max_staying_time, str(i), hotspot.get_num()) \
                                                         * math.exp(-rl)
                                         sensor[4] = True
                                         break
@@ -346,6 +361,12 @@ class Greedy:
                         self.current_reward += self.charging_penalty
                         with open(self.out_put_file, 'a') as res:
                             res.write('sensor       ' + key + '         死掉了' + '\n')
+
+            with open(self.out_put_file, 'a') as f:
+                f.write('执行action   ' + max_chose_action + '    后的剩余能量' + '\n')
+                res = self.get_sensors_residual_energy()
+                for key, value in res.items():
+                    f.write(key + ',' + str(value) + '\n')
 
         with open(self.out_put_file, 'a') as res:
             # 最后一次循环不能算在结果里面，得减去最后一次的结果

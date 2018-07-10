@@ -369,6 +369,7 @@ class NewGreedy:
             max_chose_reward = -sys.maxsize - 1
             max_chose_action = None
             for line in f:
+                self.initial_is_charged()
                 print('testing every action ............')
                 # 对于每一行就是一个action，我们依次迭代计算每一个action带来的reward，
                 chose_reward = 0
@@ -390,6 +391,10 @@ class NewGreedy:
                     sensor_path = 'sensor数据五秒/' + str(i) + '.txt'
                     with open(sensor_path) as sensor_file:
                         for sensor_line in sensor_file:
+                            # 检查当前sensor 是否在该hotspot 已经被充过电了，如果是，跳出循环
+                            sensor_is_charged = self.sensors_mobile_charger[str(i)]
+                            if sensor_is_charged[4] is True:
+                                break
                             sensor_line = sensor_line.strip().split(',')
                             point = Point(float(sensor_line[0]), float(sensor_line[1]), sensor_line[2])
                             point_time = self.str_to_seconds(point.get_time())
@@ -542,53 +547,54 @@ if __name__ == '__main__':
             rl_actions.append(line)
     # 建立一个rl_new_greedy 的环境，用于执行rl 的action
     rl_new_greedy = NewGreedy()
-    rl_new_greedy.one_step('27,11')
-    # i = 1
-    # total_reward = 0
-    # for action in rl_actions:
-    #     # 得到在当前环境下最大的reward 的action
-    #     greedy_acttion = rl_new_greedy.get_an_action_after_steps()
-    #     # 复制环境 rl_new_greedy 给 greedy_new_greedy，传入 greedy的action
-    #     greedy_new_greedy = copy.deepcopy(rl_new_greedy)
-    #
-    #     # 执行greedy 中的一步
-    #     greedy_new_greedy.one_step(greedy_acttion)
-    #     # 执行rl 中的一步
-    #     rl_new_greedy.one_step(action)
-        # with open('C:/Users/lv/Desktop/res/3_每个sensor的独⽴最⼤等待时间及hotspot最⼤等待时间⽂件.txt', 'a') as f:
-        #     f.write('########################' + '\n')
-        #     f.write('action_' + str(i) + '    ' + action + '\n')
-        #
-        #     res = rl_new_greedy.get_max_staying_time()
-        #     for key, value in res.items():
-        #         f.write(key + ',' + str(value) + '\n')
-        # with open('C:/Users/lv/Desktop/res/4_sensor的剩余能量.txt', 'a') as f:
-        #     f.write('########################' + '\n')
-        #     f.write('action_' + str(i) + '    ' + action + '\n')
-        #
-        #     res = rl_new_greedy.get_sensors_residual_energy()
-        #     for key, value in res.items():
-        #         f.write(key + ',' + str(value) + '\n')
-        #
-        # with open('C:/Users/lv/Desktop/res/5_记录每⼀步的action.txt', 'a') as f:
-        #     f.write('########################' + '\n')
-        #     f.write('action_' + str(i) + '    ' + action + '\n')
-        #     f.write('hotspot,' + str(rl_new_greedy.current_hotspot.get_num()) + ':'
-        #             + str(greedy_new_greedy.current_hotspot.get_num()) + '\n')
-        #
-        #     f.write('time,' + str(rl_new_greedy.current_hotspot_staying_time) + ':'
-        #             + str(greedy_new_greedy.current_hotspot_staying_time) + '\n')
-        #
-        #     f.write('reward,' + str(rl_new_greedy.actual_reward) + ':'
-        #             + str(greedy_new_greedy.actual_reward) +
-        #             ' , expected reward, ' + str(rl_new_greedy.expected_reward) + ':' +
-        #             str(greedy_new_greedy.expected_reward) + '\n')
-        #
-        #     f.write('sensors,' + str(rl_new_greedy.current_charging_sensors) + ':'
-        #             + str(greedy_new_greedy.current_charging_sensors) + '\n')
-        #     f.write('dead sensors,' + str(rl_new_greedy.current_dead_sensors) + ':'
-        #             + str(greedy_new_greedy.current_dead_sensors) + '\n')
-        #     i += 1
-        #     total_reward += rl_new_greedy.actual_reward
-    # print(rl_new_greedy.reward)
-    # print(total_reward)
+    i = 1
+    total_reward = 0
+    for action in rl_actions:
+        rl_new_greedy.one_step(action)
+
+        # 得到在当前环境下最大的reward 的action
+        greedy_acttion = rl_new_greedy.get_an_action_after_steps()
+        # 复制环境 rl_new_greedy 给 greedy_new_greedy，传入 greedy的action
+        greedy_new_greedy = copy.deepcopy(rl_new_greedy)
+
+        # 执行greedy 中的一步
+        greedy_new_greedy.one_step(greedy_acttion)
+        # 执行rl 中的一步
+        rl_new_greedy.one_step(action)
+        with open('C:/Users/lv/Desktop/res/3_每个sensor的独⽴最⼤等待时间及hotspot最⼤等待时间⽂件.txt', 'a') as f:
+            f.write('########################' + '\n')
+            f.write('action_' + str(i) + '    ' + action + '\n')
+
+            res = rl_new_greedy.get_max_staying_time()
+            for key, value in res.items():
+                f.write(key + ',' + str(value) + '\n')
+        with open('C:/Users/lv/Desktop/res/4_sensor的剩余能量.txt', 'a') as f:
+            f.write('########################' + '\n')
+            f.write('action_' + str(i) + '    ' + action + '\n')
+
+            res = rl_new_greedy.get_sensors_residual_energy()
+            for key, value in res.items():
+                f.write(key + ',' + str(value) + '\n')
+
+        with open('C:/Users/lv/Desktop/res/5_记录每⼀步的action.txt', 'a') as f:
+            f.write('########################' + '\n')
+            f.write('action_' + str(i) + '    ' + action + '\n')
+            f.write('hotspot,' + str(rl_new_greedy.current_hotspot.get_num()) + ':'
+                    + str(greedy_new_greedy.current_hotspot.get_num()) + '\n')
+
+            f.write('time,' + str(rl_new_greedy.current_hotspot_staying_time) + ':'
+                    + str(greedy_new_greedy.current_hotspot_staying_time) + '\n')
+
+            f.write('reward,' + str(rl_new_greedy.actual_reward) + ':'
+                    + str(greedy_new_greedy.actual_reward) +
+                    ' , expected reward, ' + str(rl_new_greedy.expected_reward) + ':' +
+                    str(greedy_new_greedy.expected_reward) + '\n')
+
+            f.write('sensors,' + str(rl_new_greedy.current_charging_sensors) + ':'
+                    + str(greedy_new_greedy.current_charging_sensors) + '\n')
+            f.write('dead sensors,' + str(rl_new_greedy.current_dead_sensors) + ':'
+                    + str(greedy_new_greedy.current_dead_sensors) + '\n')
+            i += 1
+            total_reward += rl_new_greedy.actual_reward
+    print(rl_new_greedy.reward)
+    print(total_reward)
