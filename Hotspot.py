@@ -20,3 +20,6 @@ class Hotspot:
         x = self.x - hotspot.get_x()
         y = self.y - hotspot.get_y()
         return math.sqrt((x ** 2) + (y ** 2))
+
+    def __str__(self):
+        return str(self.x) + '       ' + str(self.y)
